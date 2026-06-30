@@ -1,0 +1,36 @@
+# SMACv2 terran_10_vs_10 (OG-MARL public offline dataset) — O-MAPL.
+#
+# Reproduces the O-MAPL win-rate curves on real public SMACv2 data. The exact
+# ComaDICE buffers from the paper are unreleased; OG-MARL provides this scenario
+# (https://huggingface.co/datasets/InstaDeepAI/og-marl). See scripts/setup_hpc.sh
+# and scripts/download_smacv2_data.sh, then:
+#   python scripts/make_smacv2_data.py --scenario terran_10_vs_10 --out data/smacv2_terran_10_vs_10.pkl
+#   python -m omapl.train --config configs/smacv2_terran_10_vs_10.yaml
+#
+# n_agents/obs_dim/state_dim/action_dim are auto-filled from the dataset.
+algo: omapl
+env: smacv2
+task: terran_10_vs_10
+data_path: data/smacv2_terran_10_vs_10.pkl
+seed: 0
+device: cuda
+
+# Optimisation — Table 6 (used consistently across all experiments).
+lr: 1.0e-4
+tau: 0.005
+gamma: 0.99
+batch_size: 32
+agent_hidden_dim: 256
+mixer_hidden_dim: 64
+n_train_steps: 100000        # 100 eval steps x 1000 steps/eval (Fig. x-axis 0-100)
+
+# O-MAPL specifics.
+beta: 1.0                    # MaxEnt temperature (not given in paper; tune per task)
+reg_coef: 1.0                # chi^2 regulariser weight
+param_sharing: true
+use_agent_id: true
+mixer_q_use_action: true
+
+# Evaluation — Table 6.
+eval_every: 1000             # -> 100 evaluation steps
+eval_episodes: 32

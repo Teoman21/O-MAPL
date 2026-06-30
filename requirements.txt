@@ -1,0 +1,11 @@
+# Core (required)
+torch>=1.13
+numpy>=1.21
+pyyaml>=5.4
+
+# Optional — only needed for specific features:
+# h5py            # loading OMIGA/ComaDICE HDF5 offline buffers
+# openai          # LLM-based preference annotation (GPT-4o)
+# smacv2          # SMACv1/v2 evaluation (also needs StarCraft II + maps)
+# mujoco          # MAMuJoCo evaluation
+# gymnasium       # MAMuJoCo evaluation

@@ -1,0 +1,30 @@
+# Synthetic CoordinationEnv — end-to-end smoke/validation config.
+algo: omapl
+env: synthetic
+task: synthetic-coop
+data_path: data/synthetic.pkl
+seed: 0
+device: cpu
+
+# Optimisation (Table 6 defaults)
+lr: 1.0e-4
+tau: 0.005
+gamma: 0.99
+batch_size: 32
+agent_hidden_dim: 256
+mixer_hidden_dim: 64
+n_train_steps: 20000
+
+# O-MAPL
+beta: 1.0
+reg_coef: 1.0
+param_sharing: true
+use_agent_id: true
+mixer_q_use_action: true
+
+# Evaluation
+eval_every: 1000
+eval_episodes: 32
+
+extra:
+  episode_len: 20

@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+runs/
+*.pt
+.DS_Store
+# Large external offline datasets (OMIGA / ComaDICE); keep the small synthetic one.
+data/*.pkl
+!data/synthetic.pkl
