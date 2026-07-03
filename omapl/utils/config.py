@@ -71,6 +71,13 @@ class Config:
     n_eval_steps: int = 100           # number of evaluation checkpoints (Table 6)
 
     # ------------------------------------------------------------------ #
+    # Checkpoint / resume (for preemptible or time-limited HPC jobs)
+    # ------------------------------------------------------------------ #
+    resume: bool = True               # auto-resume from checkpoint.pt if present
+    ckpt_every: int = 1000            # save full-state checkpoint every N steps
+    requeue_on_signal: bool = True    # on SIGUSR1/SIGTERM: checkpoint + requeue
+
+    # ------------------------------------------------------------------ #
     # Misc
     # ------------------------------------------------------------------ #
     extra: Dict[str, Any] = field(default_factory=dict)

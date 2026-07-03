@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
 # One-time environment setup for reproducing O-MAPL on SMACv2, targeting the
-# Northeastern Discovery cluster (SLURM + GPU + RHEL/Rocky Linux). Run this on a
+# Northeastern Explorer cluster (SLURM + GPU + RHEL/Rocky Linux). Run this on a
 # LOGIN node (or an interactive `srun` shell). It builds a conda env, installs
 # PyTorch + smacv2 + the OG-MARL data deps, and installs StarCraft II headless
 # with the SMACv2 maps.
 #
-# Discovery notes (verify against current docs.rc.northeastern.edu):
-#   * module names/versions change — adjust `module load` lines if they fail.
-#   * GPUs live on the `gpu` partition; SC2 evaluation itself is CPU.
+# Explorer notes (verify against rc-docs.northeastern.edu):
+#   * module names/versions change — adjust `module load` lines if they fail
+#     (`module avail anaconda3`, `module avail cuda`).
+#   * GPUs live on the `gpu` partition; request one with `--gres=gpu:1`
+#     (type it if required, e.g. `gpu:v100-sxm2:1`). SC2 evaluation itself is CPU.
+#   * Interactive GPU shell for testing:
+#       srun --partition=gpu-interactive --gres=gpu:1 --cpus-per-task=4 \
+#            --mem=16G --time=02:00:00 --pty /bin/bash
 #   * Heavy downloads: run on a node with internet (login nodes have it).
 #
 # Usage:

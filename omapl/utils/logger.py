@@ -37,7 +37,13 @@ class Logger:
         rows = []
         if os.path.exists(self.csv_path):
             with open(self.csv_path, "r", newline="") as f:
-                rows = list(csv.DictReader(f))
+                reader = csv.DictReader(f)
+                rows = list(reader)
+                # Absorb any columns already on disk so rewriting old rows
+                # (which may carry fields from a prior run) never fails.
+                for k in reader.fieldnames or []:
+                    if k not in self._fields:
+                        self._fields.append(k)
         self._fh = open(self.csv_path, "w", newline="")
         self._writer = csv.DictWriter(self._fh, fieldnames=self._fields)
         self._writer.writeheader()

@@ -76,6 +76,17 @@ matching the figure's x-axis), 32 episodes/eval, against the live SMACv2 env.
 All hyperparameters come from Table 6 (`configs/smacv2_*.yaml`). Results land in
 `runs/omapl-omapl-<scenario>-s<seed>/metrics.csv`.
 
+**Preemption / time-limit safety (checkpointing).** GPU jobs get preempted or
+hit the partition wall clock. Every run writes a *full-state* checkpoint
+(`runs/<exp>/checkpoint.pt` — weights, optimizer moments, RNG, step counter)
+every `ckpt_every` steps. The SLURM script sets `--requeue` and
+`--signal=USR1@120`: 120 s before the limit (or on preemption) the trainer saves
+a checkpoint and `scontrol requeue`s itself; SLURM re-runs the script and
+`python -m omapl.train` auto-resumes bit-identically (`cfg.resume=true`). So a
+killed job is **fully autonomous** — no manual resubmission, and resuming is
+verified exact by `tests/test_checkpoint.py`. To force a fresh run, delete the
+run dir (or pass `resume=false`).
+
 A dimension guard in `omapl/train.py` aborts with a clear message if the live
 SMACv2 env's obs/state/action dims don't match the dataset — the most likely
 failure if a SMACv2 version ships different obs flags than OG-MARL used.
