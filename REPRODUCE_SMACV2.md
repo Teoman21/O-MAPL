@@ -59,10 +59,20 @@ bash scripts/download_smacv2_data.sh
 # -> data/smacv2_<scenario>.pkl                (2000 preference pairs each)
 ```
 
-This pulls the OG-MARL vaults from Hugging Face, slices each Good/Medium/Poor
-split into per-episode trajectories (`omapl/data/ogmarl_adapter.py`), and builds
-rule-based preference pairs (cross-quality pairs labelled by tier, same-tier by
-return — the paper's poor/medium/expert scheme). 2000 pairs/task per Table 3.
+This pulls the OG-MARL vaults from Hugging Face, slices them into per-episode
+trajectories (`omapl/data/ogmarl_adapter.py`), and builds rule-based preference
+pairs (cross-tier pairs labelled by tier, same-tier by return — the paper's
+poor/medium/expert scheme). 2000 pairs/task per Table 3.
+
+**Data-layout caveat (documented deviation).** The paper's quality tiers come
+from ComaDICE's (unreleased) buffers. The public OG-MARL `core/smac_v2` vaults
+ship a *single combined* replay buffer per scenario (flashbax uid `Replay`), not
+Good/Medium/Poor splits. So `make_smacv2_data.py` auto-detects the layout: if
+quality uids exist it uses them; otherwise it loads the single buffer and
+**reconstructs poor/medium/expert tiers by episodic-return terciles**
+(`load_single_buffer_as_tiers`). The preference *labelling* is unchanged from the
+paper — only the tier *source* differs (return terciles vs. separately-collected
+quality datasets). This is a transparent consequence of using public data.
 
 ## Step 3 — train (3 scenarios × 4 seeds)
 

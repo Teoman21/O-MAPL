@@ -128,6 +128,59 @@ def trajectories_from_vault(vault_rel_dir: str, vault_name: str, vault_uid: str
     )
 
 
+def list_vault_uids(vault_rel_dir: str, vault_name: str) -> List[str]:
+    """Return the uid subdirectories present in a vault dir on disk.
+
+    A flashbax vault is laid out ``<rel_dir>/<vault_name>/<uid>/``. OG-MARL's
+    original datasets used quality uids (``Good``/``Medium``/``Poor``); the
+    public ``core/smac_v2`` vaults ship a single combined uid (``Replay``).
+    """
+    import os
+    vlt = os.path.join(vault_rel_dir, vault_name)
+    if not os.path.isdir(vlt):
+        return []
+    return sorted(d for d in os.listdir(vlt)
+                  if os.path.isdir(os.path.join(vlt, d)))
+
+
+def load_single_buffer_as_tiers(
+    vault_rel_dir: str, vault_name: str, vault_uid: str,
+    tier_names: Sequence[str] = ("poor", "medium", "expert"),
+    n_per_tier: Optional[int] = 1000,
+    rng: Optional[np.random.Generator] = None,
+) -> Tuple[Dict[str, List[Dict]], DataSpec]:
+    """Reconstruct poor/medium/expert tiers from a *single* combined buffer.
+
+    The public OG-MARL ``core/smac_v2`` vaults ship one mixed-quality buffer
+    (uid ``Replay``), not the Good/Medium/Poor splits our other loader expects,
+    and not the (unreleased) ComaDICE quality tiers the paper used. To keep the
+    paper's rule-based preference scheme applicable, we load the single buffer,
+    slice it into per-episode trajectories, and bucket episodes into quality
+    tiers by **episodic-return terciles** (lowest third -> worst tier). This is a
+    documented, transparent deviation forced by the public data; the labelling
+    itself (cross-tier by tier, same-tier by return) is unchanged from the paper.
+
+    Returns ``({tier: [traj, ...]}, spec)`` with tiers ordered worst -> best.
+    """
+    rng = rng or np.random.default_rng()
+    trajs, spec = trajectories_from_vault(vault_rel_dir, vault_name, vault_uid)
+    # Rank episodes by return (ascending) and split into equal terciles.
+    order = sorted(range(len(trajs)), key=lambda i: trajs[i].get("return", 0.0))
+    n = len(order)
+    cut1, cut2 = n // 3, (2 * n) // 3
+    buckets: Dict[str, List[Dict]] = {t: [] for t in tier_names}
+    for rank, i in enumerate(order):
+        tier = (tier_names[0] if rank < cut1
+                else tier_names[1] if rank < cut2 else tier_names[2])
+        buckets[tier].append(trajs[i])
+    if n_per_tier is not None:
+        for t in tier_names:
+            if len(buckets[t]) > n_per_tier:
+                keep = rng.choice(len(buckets[t]), size=n_per_tier, replace=False)
+                buckets[t] = [buckets[t][j] for j in keep]
+    return buckets, spec
+
+
 def load_trajs_by_quality(
     vault_rel_dir: str, vault_name: str,
     quality_order: Sequence[str] = OGMARL_QUALITY_ORDER,
