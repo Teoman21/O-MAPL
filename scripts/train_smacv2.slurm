@@ -55,8 +55,11 @@ echo "==> Task $SLURM_ARRAY_TASK_ID : scenario=$scenario seed=$seed (restart cou
 echo "==> SC2PATH=$SC2PATH  CUDA=$(python -c 'import torch;print(torch.cuda.is_available())')"
 
 cd "$SLURM_SUBMIT_DIR"
+# Optional extra CLI overrides (key=value ...), e.g. for hyperparameter sweeps:
+#   sbatch --export=ALL,OMAPL_OVERRIDES="reg_coef=10.0 beta=2.0" ...
+echo "==> overrides: ${OMAPL_OVERRIDES:-<none>}"
 # --signal delivers SIGUSR1 to the step below; the trainer's handler checkpoints
 # and requeues. `srun` propagates the signal to the python process.
 srun --unbuffered python -m omapl.train \
   --config "configs/smacv2_${scenario}.yaml" \
-  seed="$seed" device=cuda
+  seed="$seed" device=cuda ${OMAPL_OVERRIDES:-}
