@@ -34,6 +34,15 @@ set -euo pipefail
 
 source "$HOME/.omapl_env"
 
+# StarCraft II runs locally; pysc2 reaches it over a 127.0.0.1 websocket. HPC
+# compute nodes often export http(s)_proxy, which makes pysc2 tunnel that LOCAL
+# connection through the proxy -> "failed CONNECT via proxy status: 403" at the
+# first eval. Training + local SC2 eval need no internet, so drop the proxy vars
+# and exempt localhost.
+unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY
+export no_proxy="localhost,127.0.0.1,::1"
+export NO_PROXY="localhost,127.0.0.1,::1"
+
 SCENARIOS=(terran_5_vs_5 zerg_5_vs_5 terran_10_vs_10)
 SEEDS=(0 1 2 3)
 
