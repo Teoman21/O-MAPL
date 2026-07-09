@@ -161,9 +161,25 @@ policy, so it does not hurt win-rate. `beta` matters as the *policy temperature*
 `beta=20` over-softens the advantage weighting (weak policy, 19%); `beta≈10` is the
 sweet spot. `reg_coef` (which we swept 1→1000) is a red herring for this.
 
-**Chosen config: `beta=10.0`, `reg_coef=1.0`** — baked into all three
-`configs/smacv2_*.yaml`. Tuned once on `terran_5_vs_5`, applied to all scenarios
-(standard practice for an unspecified hyperparameter).
+**`beta` is per-scenario (tuned; not in the paper), `reg_coef=1.0`:**
+
+| scenario | beta | why |
+|---|---|---|
+| terran_5_vs_5 | **10** | best win-rate at 20k sweep; beta=20 over-softens it (18%) |
+| zerg_5_vs_5 | **20** | beta≤10 diverges over full training; 20 keeps V bounded |
+| terran_10_vs_10 | **20** | beta=10 diverges to V~millions by ~90k; 20 keeps V~20 |
+
+**Important follow-up finding (full 100k runs).** `beta=10` looked best in the
+short 20k sweep but **did not hold over the full 100k on the harder scenarios**:
+terran_10 s0 at `beta=10` diverged late (loss/reg exploded, win-rate → ~0–3%). A
+second sweep (`beta=20/30` on zerg + terran_10) **fixed the divergence** (V stayed
+bounded at ~15–25) but win-rates stayed low anyway — zerg ~6–18%, terran_10 ~0–6%.
+Since training is now stable and win-rate is *still* low, this is a **data gap**
+(public OG-MARL is weaker than the paper's unreleased ComaDICE data on the harder
+scenarios), not a bug. `beta=20` chosen for zerg + terran_10 as the stable config;
+we stopped tuning there. Honest expected result: terran_5 ~9–31% (closest to the
+paper), zerg/terran_10 stable but well below the paper's ~30% — a documented
+consequence of the public data.
 
 ---
 

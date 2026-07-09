@@ -25,9 +25,9 @@ mixer_hidden_dim: 64
 n_train_steps: 100000        # 100 eval steps x 1000 steps/eval (Fig. x-axis 0-100)
 
 # O-MAPL specifics.
-beta: 10.0                   # MaxEnt temperature (not in paper; tuned on terran_5_vs_5:
-                             # beta=1 diverges the value & degrades win-rate; beta=10 is
-                             # stable with the best win-rate. See NOTES.md.
+beta: 20.0                   # MaxEnt temperature (not in paper; tuned per scenario).
+                             # terran_10 needs beta=20: beta=10 diverges (V -> millions)
+                             # late in training; beta=20 keeps V bounded. See HPC_RUN_LOG.md.
 reg_coef: 1.0                # chi^2 regulariser weight
 param_sharing: true
 use_agent_id: true
