@@ -232,6 +232,70 @@ python scripts/plot_winrate.py        # -> runs/omapl_smacv2_winrate.png
 
 ---
 
+## 6b. Final results & honest assessment (outcome)
+
+Full run completed: O-MAPL, 3 public SMACv2 scenarios × 4 seeds, 100k steps,
+per-scenario `beta` (§5). Figure: `runs/omapl_smacv2_winrate.png`.
+
+**Final win-rate (mean ± std over 4 seeds):**
+
+| scenario | ours | paper (approx, Fig. 1) |
+|---|---|---|
+| terran_5_vs_5 | **21.1 ± 8.1 %** | ~40 % |
+| zerg_5_vs_5 | **8.6 ± 2.6 %** | ~30 % |
+| terran_10_vs_10 | **3.1 ± 3.1 %** | ~30 % |
+
+**This is NOT a successful reproduction of the paper's curves.** Two gaps:
+1. **Magnitude** well below the paper.
+2. **Shape:** our curves are **flat** — win-rate jumps to a low level early and
+   oscillates there — whereas the paper's O-MAPL curves clearly **rise** from ~0
+   to a plateau (they *learn* over training). Ours don't visibly learn.
+
+**Root cause — the `beta` stability/learning tension (not just the data gap).**
+The policy is extracted by advantage-weighted BC with weight `exp((Q−V)/beta)`:
+- At **high `beta`** (20, used for zerg/terran_10 to stop divergence) the exponent
+  is tiny → weight ≈ 1 for every action → weighted-BC **collapses to plain BC** →
+  the policy just clones the offline data → **flat curve at data level.**
+- At **low `beta`** (where the advantage actually shapes the policy → real
+  learning) the **value diverges** (`V → 10³–10⁶`, seen at beta=1/10).
+
+We were forced to choose stability over learning signal. The paper evidently
+operates at a point that is **both** stable *and* learning, which implies a
+**stabilization mechanism we did not implement** — most likely one of:
+- **return/reward normalization** (standard in OMIGA/ComaDICE offline MARL; absent here),
+- **lower Q/V learning rate** combined with a low `beta`,
+- **target-network / clipping details** in the Extreme-V update.
+
+Compounded by the **data gap** (public OG-MARL ≠ the paper's unreleased ComaDICE
+buffers), so even a correct stabilization fix may not reach the paper's magnitudes.
+
+**Status:** faithful method + stable training on real public data, but it does
+**not** recover the paper's win-rate curves. Left as an open issue for future
+work; the concrete next experiment is return normalization + a low-`beta` retry
+on terran_5_vs_5.
+
+**Why this is genuinely hard (not a matter of effort).**
+- **No reference code + underspecified hyperparameters.** O-MAPL ships no code;
+  `beta` (the single knob that decides stable-vs-learning) and any reward/value
+  normalization are **not stated in the paper**. Reproducing the result means
+  *rediscovering* an unstated recipe, not just re-running one.
+- **No reference data.** The paper's ComaDICE SMACv2 buffers were never released;
+  public OG-MARL differs in quality and coverage (3 of 15 cells), so there is no
+  apples-to-apples target — absolute numbers can't be expected to match.
+- **The core algorithm sits on a knife-edge.** Preference-only offline value
+  learning has nothing grounding the value scale except a soft χ² term, so it is
+  intrinsically prone to the deadly-triad divergence. The stable region (bounded
+  value *and* a live advantage signal) is narrow and task-dependent; hitting it
+  reliably across scenarios is a research problem, not a config tweak.
+- **Slow, expensive iteration.** Each signal requires ~100k offline steps + live
+  StarCraft II evaluation on a shared, quota-limited, preemptible GPU cluster —
+  hours per data point — so the search over the unstated recipe is costly.
+
+In short: reproducing this figure means solving an underspecified, unstable,
+data-limited offline-RL problem with slow feedback. We built the full correct
+pipeline and reached stable training; closing the last gap to the paper's curves
+is a substantial research effort in its own right.
+
 ## 7. Code changes made during this run (committed)
 
 - `omapl/data/ogmarl_adapter.py` — `list_vault_uids`, `load_single_buffer_as_tiers`

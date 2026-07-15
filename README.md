@@ -50,13 +50,14 @@ R(o,a,o')  = Q_tot(o,a) − γ · V_tot(o')                 (inverse soft Bellma
 
 Each training step performs the **three alternating updates** of Algorithm 1:
 
-| Step | Loss | Updates | Code |
-|------|------|---------|------|
-| (4) Preference likelihood `L` | Bradley-Terry over `Σ_σ R` + χ² reg. `φ(x)=−½x²+x` | `ψ_q`, `θ` | `OMAPL._update_preference` |
-| (5) Extreme-V `J` | `E[exp((Q_tot−V_tot)/β) − (Q_tot−V_tot)/β] − 1` (XQL/Gumbel) | `ψ_v` | `OMAPL._update_extreme_v` |
-| (6) Local weighted-BC `Ψ` | `E_{o,a}[ exp((Q_tot−V_tot)/β) · log π_i(a_i|o_i) ]` | `ω` | `OMAPL._update_policy` |
+| Step                           | Loss                                                                 | Updates          | Code                         |
+| ------------------------------ | -------------------------------------------------------------------- | ---------------- | ---------------------------- |
+| (4) Preference likelihood`L` | Bradley-Terry over`Σ_σ R` + χ² reg. `φ(x)=−½x²+x`        | `ψ_q`, `θ` | `OMAPL._update_preference` |
+| (5) Extreme-V`J`             | `E[exp((Q_tot−V_tot)/β) − (Q_tot−V_tot)/β] − 1` (XQL/Gumbel) | `ψ_v`         | `OMAPL._update_extreme_v`  |
+| (6) Local weighted-BC`Ψ`    | `E_{o,a}[ exp((Q_tot−V_tot)/β) · log π_i(a_i                     | o_i) ]`          | `ω`                       |
 
 **Why these design choices (theory):**
+
 - *Linear* mixing makes `L` concave in `q,θ` and `J` convex in `v`
   (Prop. 4.1); a 2-layer mixer breaks this (Prop. 4.2). → `Mixer.combine` is
   linear in the local values; verified in `tests/test_components.py`.
@@ -77,13 +78,13 @@ is **not specified in the paper** — it defaults to `1.0` and should be tuned.
 
 ## Baselines (Appendix B.5)
 
-| Algo | Description | Code |
-|------|-------------|------|
-| `omapl` | O-MAPL (linear hypernetwork mixer) | `algos/omapl.py::OMAPL` |
-| `ipl_vdn` | O-MAPL with a VDN sum mixer (no hypernetwork) | `algos/omapl.py::IPL_VDN` |
-| `iipl` | Independent IPL — single-agent IPL per agent, no mixing | `algos/baselines.py::IIPL` |
-| `bc` | Behaviour cloning of preferred trajectories | `algos/baselines.py::BC` |
-| `sl_marl` | Two-phase reward-learning + OMIGA — *not included* (needs OMIGA) | — |
+| Algo        | Description                                                        | Code                         |
+| ----------- | ------------------------------------------------------------------ | ---------------------------- |
+| `omapl`   | O-MAPL (linear hypernetwork mixer)                                 | `algos/omapl.py::OMAPL`    |
+| `ipl_vdn` | O-MAPL with a VDN sum mixer (no hypernetwork)                      | `algos/omapl.py::IPL_VDN`  |
+| `iipl`    | Independent IPL — single-agent IPL per agent, no mixing           | `algos/baselines.py::IIPL` |
+| `bc`      | Behaviour cloning of preferred trajectories                        | `algos/baselines.py::BC`   |
+| `sl_marl` | Two-phase reward-learning + OMIGA —*not included* (needs OMIGA) | —                           |
 
 ## Repository layout
 
@@ -119,15 +120,6 @@ The algorithm is benchmark-agnostic. To run the paper's experiments you supply
 
 The dataset dimensions (`n_agents`, `obs_dim`, `state_dim`, `action_dim`) are
 auto-filled from the `PreferenceDataset`.
-
-> **Reproducing the SMACv2 win-rate curves on a GPU cluster:** the ComaDICE
-> buffers from the paper are unreleased, so see **[`REPRODUCE_SMACV2.md`](REPRODUCE_SMACV2.md)**
-> for an end-to-end runbook using the public **OG-MARL** SMACv2 data (the 3
-> available cells: `terran_5_vs_5`, `zerg_5_vs_5`, `terran_10_vs_10`). It wires
-> up data download/labelling (`scripts/make_smacv2_data.py`,
-> `omapl/data/ogmarl_adapter.py`), SLURM training (`scripts/train_smacv2.slurm`),
-> and plotting (`scripts/plot_winrate.py`), with HPC setup in
-> `scripts/setup_hpc.sh` (tuned for Northeastern Discovery).
 
 ## Implementation notes / fidelity
 

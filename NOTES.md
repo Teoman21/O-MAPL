@@ -10,6 +10,7 @@ A faithful from-scratch reimplementation of **O-MAPL** (Bui, Mai & Nguyen,
 directly from the paper's equations. It is intended as a **baseline**.
 
 The full method is implemented:
+
 - The **linear value-factorization mixer** with non-negative hypernetwork
   weights (Eqs. 6–7).
 - The **three alternating updates** of Algorithm 1:
@@ -23,6 +24,7 @@ The full method is implemented:
 **Level 1 — correctness against the paper's theory.** These checks have an
 *external* ground truth, so they genuinely catch bugs
 (`tests/test_components.py`):
+
 - **Extreme-V → soft value.** Optimizing against the `J` loss converges to the
   log-sum-exp soft value, compared against an independent computation
   (`v = 0.991` vs `target = 0.991`). Confirms `J` does what the paper claims.
@@ -54,6 +56,7 @@ pipeline learns. It does **not** mean the benchmark numbers are reproduced.
 
 Three judgment calls that could differ from the authors' intent; reconcile
 these first if reference code is released:
+
 1. **Temperature `β`** — not reported in the paper. Defaults to `1.0`; treat as
    a per-task tuning knob.
 2. **Q-mixer action conditioning** — the Q-mixer hypernetwork is conditioned on
@@ -68,48 +71,6 @@ Convert one SMACv2 offline dataset (ComaDICE) via `omiga_adapter`, label it with
 `generate_preferences` (rule-based or the Table-5 GPT-4o prompt), and run it
 against the real SMACv2 env. Success there = win rate matches Table 1 and beats
 IPL-VDN / IIPL / BC.
-
-## How the tests actually work (mechanics)
-
-Two files, two layers. Each test pins a *specific* paper claim to a checkable
-numerical property — not just "runs without crashing".
-
-**`tests/test_components.py` — code vs. the paper's math.** Shared fixtures:
-`_tiny_cfg()` builds a 3-agent discrete config; `_random_batch()` makes a
-seeded `[B, 2, T, ...]` padded preference batch (the `2` is the trajectory pair,
-`mask` handles padding).
-- `test_mixer_linear_in_inputs` — feeds `α·q₁+(1−α)·q₂` through the mixer and
-  asserts it equals `α·mix(q₁)+(1−α)·mix(q₂)` to `atol=1e-5`. This is the
-  precondition for convexity (Prop. 4.1); a 2-layer mixer would fail it.
-- `test_mixer_shapes_and_nonneg` — checks hypernetwork weight shapes and that
-  `(w_q >= 0).all()`. Non-negativity ⇒ global-local consistency (Thms. 4.3/4.4).
-- `test_extreme_v_recovers_logsumexp` — the strongest check. It *actually
-  optimizes* the Gumbel/XQL `J` loss `(exp(z)−z−1)` for 3000 Adam steps on a
-  toy 5-value problem and asserts the minimizer lands on an independently
-  computed `β·logsumexp(Q/β − log N)` (got `v=0.991` vs `target=0.991`).
-  Verifies the loss *does* what the paper claims, not just that it's wired up.
-- `test_gradient_routing` — snapshots every parameter group (`q_net`, `mixer`,
-  `v_net`, `policy`), runs each of the three sub-updates in isolation, and
-  asserts *exactly* which groups changed and which did not. This is the
-  load-bearing test: it proves the `detach()` / target-net / `v_value_only`
-  machinery correctly isolates the three updates of Algorithm 1.
-- `test_all_algos_step` — runs one `update()` for `omapl/ipl_vdn/iipl/bc` and
-  only checks metrics are finite and `act()` returns the right shape. This is a
-  smoke check, **not** a correctness check (it would pass even if the math were
-  subtly wrong, as long as nothing is NaN).
-
-**`tests/test_smoke.py` — end-to-end learning.** `_make_dataset()` collects
-trajectories at three behavior-policy noise levels (`poor/medium/expert`) on the
-synthetic `CoordinationEnv`, then builds 500 rule-based preference pairs.
-`test_omapl_learns()` measures return *before* training (random baseline),
-trains 1500 steps, measures again, and asserts the trained policy beats both
-random (`+1.0`) and chance (`1.3×`). The env optimum is 10; trained runs hit it.
-
-**Limits to keep in mind.** These tests encode *our reading* of the paper, so a
-misread equation would be faithfully verified as the wrong thing (the
-convexity / logsumexp / routing tests are tight enough to make this unlikely).
-And nothing here compares against the paper's benchmark numbers — see "What has
-NOT been verified" above.
 
 ## How to re-run the verification
 
